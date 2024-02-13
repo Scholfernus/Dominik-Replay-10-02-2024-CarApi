@@ -1,47 +1,83 @@
 package com.example.carapi.controller;
 
-import com.example.carapi.model.Car;
+import com.example.carapi.dto.CarDto;
+import com.example.carapi.model.CarModel;
 import com.example.carapi.service.CarService;
+import com.example.carapi.utils.error.CarNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping(value = "/cars", produces = {MediaType.APPLICATION_JSON_VALUE})
+@RequiredArgsConstructor
 public class CarController {
-    private List<Car> carsList;
+    //    private List<CarModel> carsList;
     private final CarService carService;
 
-    public CarController(CarService carService) {
-        this.carService = carService;
-    }
-
-
     @GetMapping
-    public ResponseEntity<List<Car>> getAllCars(){
-        return ResponseEntity.ok(carsList);
+    public ResponseEntity<List<CarModel>> getAllCars() {
+        try {
+            List<CarModel> carsList = carService.getCarList();
+            return ResponseEntity.ok(carsList);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
+
     @GetMapping("/{id}")
-    public ResponseEntity<Car> getCarById(@PathVariable Long id){
-        Optional<Car> firstCar = carsList.stream().filter(car -> car.getId() == id).findFirst();
-        if (firstCar.isPresent()){
-            return ResponseEntity.ok(firstCar.get());
-        }else {
+    public ResponseEntity<CarModel> getCarById(@PathVariable Long id) {
+        try {
+            CarModel carModel = carService.getCarById(id);
+            return ResponseEntity.ok(carModel);
+        } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
     }
-    @PostMapping
-    public ResponseEntity<Car>addCar(@RequestBody Car car){
-        boolean add = carsList.add(car);
-        if (add){
-           return new ResponseEntity<>(HttpStatus.CREATED);
-        }else {
-return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+
+    @GetMapping("/color/{color}")
+    public ResponseEntity<List<CarModel>> getCarsByColor(@PathVariable String color) {
+        try {
+            List<CarModel> carList = carService.getCarsByColor(color);
+            return ResponseEntity.ok(carList);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
+    @PostMapping
+    public ResponseEntity<CarModel> addCar(@RequestBody CarModel car) {
+        try {
+            carService.addCar(car);
+            return new ResponseEntity<>(HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<CarModel> deleteCarById(@PathVariable Long id) {
+        try {
+            carService.remove(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+
+    @PatchMapping("/{id}/color")
+    public ResponseEntity<CarDto> editCarColorById(@PathVariable Long id,
+                                                   @RequestBody CarDto carDto) {
+        try {
+            CarDto updateCar = carService.updateCarColor(id, carDto);
+            return ResponseEntity.ok(updateCar);
+        }catch (CarNotFoundException e){
+            return ResponseEntity.notFound().build();
+        }
+    }
 }
